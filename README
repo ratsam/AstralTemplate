@@ -1,0 +1,166 @@
+================================
+Краткий ввод в Astral Templates.
+================================
+
+Перед началом.
+==============
+
+Нам понадобятся следующие скрипты:
+ * jQuery,
+ * astral/oo.js
+ * astral/queue/context.js
+ * astral/queue/queue.js
+ * astral/template/blocks.js
+ * astral/template/controls.js
+ * astral/template/tokens.js
+ * astral/template/lexer.js
+ * astral/template/helpers.js
+ * astral/template/template.js
+
+Определяем загрузчик шаблонов.
+------------------------------
+
+Для примера мы создадим простую фунцию, берущую код шаблонов прямо из элементов страницы.
+На практике вам скорее всего понадобится подгружать нужные шаблоны с помощью AJAX-запросов.
+
+Code::
+
+	(function () {
+		var _templatesCache = {};
+		astral.template.Template.registerLoader(function (name, callback) {
+			if (!_templatesCache[name]) {
+				_templatesCache[name] = astral.template.Template.fromSource($('#'+name).html());
+			}
+			callback(_templatesCache[name]);
+		});
+	})();
+
+Общая информация.
+=================
+
+Есть четыре типа тегов:
+ * ``<? ?>`` используются для конфигурирования шаблонных хелперов.
+ * ``<%= %>`` исользуются для вывода значения переменной (или целого выражения).
+ * ``<# #>`` используются для комментирования.
+ * ``<@ @>`` используются для вставки управляющих конструкций.
+
+Управляющие конструкции.
+------------------------
+
+**each**
+
+Синтаксис::
+
+	<@ each listName as varName @>
+		... здесь идёт код, работающий с varName ...
+	<@ endeach @>
+
+**include**
+
+Синтаксис::
+
+	<@ include "templateName" @>
+
+Использует зарегистрированный загрузчик для загрузки и рендеринга шаблона, передавая данные текущего контекста.
+
+**source**
+
+Синтаксис::
+
+	<@ source @>
+		alert("It's a native JavaScript code here!");
+	<@ endsource @>
+
+Позволяет вставить обычный javascript-код.
+
+**call**
+
+Синтаксис::
+
+	<@ call methodName @>
+
+Вызывает метод ``methodName`` у зарегистрированного хелпера.
+
+**super**
+
+Ситаксис::
+
+	<@ super @>
+
+Выводит результат выполнения одноименого метода базового шаблона.
+Используется только внутри методов хелпера шаблона-расширения.
+
+Создаём и проверяем шаблоны.
+============================
+
+Начнем с простого::
+
+	<script type="template/astral" id="simpleTemplate">
+		<ul>
+			<@ each items as item @>
+				<li><%= item.name %></li>
+			<@ endeach @>
+		</ul>
+	</script>
+
+Теперь отрендерим его::
+
+	astral.template.Template.load('simpleTemplate', function (template) {
+		template.render('#simpleTemplateResult', {items: [
+			{name: 'First item'},
+			{name: 'Second item'}
+		]});
+	});
+
+Запускаем и проверяем::
+
+	<ul>
+		<li>First item</li>
+		<li>Second item</li>
+	</ul>
+
+Но такой шаблон не очень полезен: его невозможно переиспользовать.
+Попробуем выделить фрагмент шаблона в отдельный метод::
+
+	<script type="template/astral" id="defTemplate">
+		<? def printItem ?>
+			<%= item.name %>
+		<? enddef ?>
+		<ul>
+			<@ each items as item @>
+				<li><@ call printItem @></li>
+			<@ endeach @>
+		</ul>
+	</script>
+
+Обратите внимание на особые теги ``<? ?>``.
+Результат рендеринга этого шаблона ничем не отличается от предыдущего.
+
+Теперь сделаем шаблон-расширение::
+
+	<script type="template/astral" id="extendedTemplate">
+		<? extends "defTemplate" ?>
+		<? def printItem ?>
+			<a href="<%= item.href %>"><@ super @></a>
+		<? enddef ?>
+	</script>
+
+И отрендерим его::
+
+	astral.template.Template.load('extendedTemplate', function (template) {
+		template.render('#extendedTemplateResult', {items: [
+			{name: 'First item name', href: "first_item_href"},
+			{name: 'Second item name', href: "second_item_href"}
+		]});
+	});
+
+Проверяем::
+
+	<ul>
+		<li>
+			<a href="first_item_href">First item name</a>
+		</li>
+		<li>
+			<a href="second_item_href">Second item name</a>
+		</li>
+	</ul>

@@ -1,0 +1,80 @@
+<html>
+	<head>
+		<script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.3/jquery.min.js"></script>
+		
+		<script type="text/javascript" src="astral/oo.js"></script>
+		<script type="text/javascript" src="astral/queue/context.js"></script>
+		<script type="text/javascript" src="astral/queue/queue.js"></script>
+		
+		<script type="text/javascript" src="astral/template/blocks.js"></script>
+		<script type="text/javascript" src="astral/template/controls.js"></script>
+		<script type="text/javascript" src="astral/template/tokens.js"></script>
+		<script type="text/javascript" src="astral/template/lexer.js"></script>
+		<script type="text/javascript" src="astral/template/helpers.js"></script>
+		<script type="text/javascript" src="astral/template/template.js"></script>
+		
+		<script type="text/javascript">
+			$(function () {
+				if (window.console) {
+					astral.queue.DEBUG = true;
+					astral.template.DEBUG = true;
+				}
+				
+				(function () {
+					var _templatesCache = {};
+					astral.template.Template.registerLoader(function (name, callback) {
+						if (!_templatesCache[name]) {
+							_templatesCache[name] = astral.template.Template.fromSource($('#'+name).html());
+						}
+						callback(_templatesCache[name]);
+					});
+				})();
+
+				astral.template.Template.load('testTemplate', function (template) {
+					template.render('#simpleTemplateResult', {items: [
+						{name: 'First item'},
+						{name: 'Second item'}
+					]});
+				});
+
+				astral.template.Template.load('extendedTemplate', function (template) {
+					template.render('#extendedTemplateResult', {items: [
+						{name: 'First item name', href: "first_item_href"},
+						{name: 'Second item name', href: "second_item_href"}
+					]});
+				});
+				
+			});
+		</script>
+		
+		<script type="template/astral" id="testTemplate">
+			<ul>
+				<@ each items as item @>
+					<li><%= item.name %></li>
+				<@ endeach @>
+			</ul>
+		</script>
+		
+		<script type="template/astral" id="defTemplate">
+			<? def printItem ?>
+				<%= item.name %>
+			<? enddef ?>
+			<ul>
+				<@ each items as item @>
+					<li><@ call printItem @></li>
+				<@ endeach @>
+			</ul>
+		</script>
+		
+		<script type="template/astral" id="extendedTemplate">
+			<? extends "defTemplate" ?>
+			<? def printItem ?>
+				<a href="<%= item.href %>"><@ super @></a>
+			<? enddef ?>
+		</script>
+	</head>
+	<body>
+		<div id="simpleTemplateResult"></div>
+		<div id="extendedTemplateResult"></div>
+	</body>
+</html>
