@@ -67,16 +67,12 @@
 							return token.render().replace(/\n/g, '\n\t');
 						});
 						
-						switch (result.length) {
-							case 0:
-								return 'null';
-							case 1:
-								return result [0];
-							default:
-								// Push miltiple tasks into queue
-								return 'new astral.queue.Queue([\n\t\t' +
-									result.join(',\n').replace(/\n/g, '\n\t\t') + '\n\t' +
-									'])';
+						if (!result.length) {
+							return 'null';
+						} else {
+							return 'new astral.queue.Queue([\n\t\t' +
+								result.join(',\n').replace(/\n/g, '\n\t\t') + '\n\t' +
+								'])';
 						}
 					});
 					
