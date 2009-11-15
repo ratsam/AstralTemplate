@@ -43,7 +43,13 @@
 						{name: 'Second item name', href: "second_item_href"}
 					]});
 				});
-				
+
+				astral.template.Template.load('ifStatementTemplate', function (template) {
+					template.render('#ifStatementTemplateResult', {items: [
+						{name: 'First item, with href', href: "first_item_href"},
+						{name: 'Second simple item'}
+					]});
+				});
 			});
 		</script>
 		
@@ -72,9 +78,21 @@
 				<a href="<%= item.href %>"><@ super @></a>
 			<? enddef ?>
 		</script>
+		
+		<script type="template/astral" id="ifStatementTemplate">
+			<? extends "defTemplate" ?>
+			<? def printItem ?>
+				<@ if item.href @>
+					<a href="<%= item.href %>"><@ super @></a>
+				<@ else @>
+					<@ super @>
+				<@ endif @>
+			<? enddef ?>
+		</script>
 	</head>
 	<body>
 		<div id="simpleTemplateResult"></div>
 		<div id="extendedTemplateResult"></div>
+		<div id="ifStatementTemplateResult"></div>
 	</body>
 </html>

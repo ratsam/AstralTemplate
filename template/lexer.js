@@ -173,7 +173,7 @@
 					extend = 'function (context) { return context.get("'+extend+'"); }';
 				}
 				
-				return 'registerTemplateHelper(currentTemplate, '+extend+', {\n\t'+
+				return 'registerTemplateHelper('+extend+', {\n\t'+
 					this._renderTokens(tokens) + '\n' +
 					'})';
 			},
@@ -186,7 +186,7 @@
 				def.setInclusionTokens([mainQueue]);
 				tokens.push(def);
 				
-				return 'registerTemplateHelper(currentTemplate, {\n\t' +
+				return 'registerTemplateHelper({\n\t' +
 					this._renderTokens(tokens) + '\n' +
 					'})';
 			},

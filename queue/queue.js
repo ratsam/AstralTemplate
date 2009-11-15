@@ -15,38 +15,6 @@
 		return length;
 	};
 	
-	astral.queue.clone = function(obj){
-   var seenObjects = [];
-   var mappingArray = [];
-   var	f = function(simpleObject) {
-   	if (simpleObject === null) return null;
-      var indexOf = seenObjects.indexOf(simpleObject);
-      if (indexOf == -1) {
-      	if (simpleObject instanceof Array) {
-               seenObjects.push(simpleObject);
-               var newArray = [];
-               mappingArray.push(newArray);
-               for(var i=0,len=simpleObject.length; i<len; i++)
-                  newArray.push(f(simpleObject[i]));
-            return newArray;
-      	}
-      	if (typeof(simpleObject) == 'object') {
-               seenObjects.push(simpleObject);
-               var newObject = {};
-               mappingArray.push(newObject);
-               for (var p in simpleObject) 
-                  newObject[p] = f(simpleObject[p]);
-               newObject.constructor = simpleObject.constructor;				
-            return newObject;
-      		
-      	}
-      	return simpleObject;
-      } else {
-         return mappingArray[indexOf];
-      }
-   };
-   return f(obj);		
-}
 	/**
 	 * Deep copy object
 	 */
@@ -131,6 +99,7 @@
 				throw new Error("Unable to clone completed queue");
 			}
 			
+			// FIXME: BADCODE:
 			return astral.queue.clone(this, function (node) {return node instanceof astral.template.Template});
 		},
 		

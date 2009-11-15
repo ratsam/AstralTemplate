@@ -3,13 +3,29 @@
 	if (!astral.template) astral.template = {};
 	
 	astral.template.Block = Base.extend({
-		constructor: function () {},
+		constructor: function () {
+			this.useElse = this.constructor.useElse ? true : false;
+		},
 		
 		setArguments: function (args) {
 			this.args = args;
 		},
 		setInclusionTokens: function (tokens) {
-			this.inclusionTokens = tokens;
+			if (!this.useElse) {
+				this.inclusionTokens = tokens;
+			} else {
+				var elseFound = false;
+				this.inclusionTokens = [[], []];
+				
+				for (var i=0; i<tokens.length; i++) {
+					var token = tokens[i];
+					if (token.tagName == 'else') {
+						elseFound = true;
+						continue;
+					}
+					this.inclusionTokens[elseFound?1:0].push(token);
+				}
+			}
 		}
 	}, {
 		registry: {},
@@ -43,6 +59,48 @@
 				useInclusion: true
 			})
 		);
+		
+		Block.register('if', Block.extend({
+				render: function () {
+					var groups = $.map(this.inclusionTokens, function (group) {
+						var result = $.map(group, function (token) {
+							return token.render().replace(/\n/g, '\n\t');
+						});
+						
+						switch (result.length) {
+							case 0:
+								return 'null';
+							case 1:
+								return result [0];
+							default:
+								// Push miltiple tasks into queue
+								return 'new astral.queue.Queue([\n\t\t' +
+									result.join(',\n').replace(/\n/g, '\n\t\t') + '\n\t' +
+									'])';
+						}
+					});
+					
+					
+					return 'checkIf(\n' +
+							'	function (context) {\n' +
+							'		with (context.data) {\n' +
+							'			return ' + this.args.join(' ') +';\n' +
+							'		}\n' +
+							'	},\n\t' +
+							groups.join(',\n\t') +'\n' +
+							')';
+				}
+			}, {
+				useInclusion: true,
+				useElse: true
+			})
+		);
+		
+		Block.register('else', Block.extend({
+			render: function () {
+				throw new Error("'else' block not allowed here");
+			}
+		}));
 		
 		Block.register('include', Block.extend({
 				render: function () {

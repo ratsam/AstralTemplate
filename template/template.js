@@ -57,7 +57,7 @@
 			var compileCode = 'with (astral.template.helpers) {\n' +
 						'	currentTemplate.createHelper = ' + code.replace(/\n/g, '\n\t') + ';\n' +
 						'	currentTemplate.renderQueue = new astral.queue.Queue([\n'+
-						'		currentTemplate.createHelper,\n' +
+						'		currentTemplate.createHelper(),\n' +
 						'		delegate(function (context) {\n' +
 						'			return currentTemplate.getHelper(context).createMainQueue(currentTemplate);\n' +
 						'		})\n' +

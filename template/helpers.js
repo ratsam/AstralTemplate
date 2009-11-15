@@ -57,6 +57,36 @@
 		return new EachIterator(listName, itemName, makeCallback);
 	};
 	
+	var IfStatement = astral.queue.Task.extend({
+		constructor: function (checker, trueQueue, falseQueue) {
+			this.checker = checker;
+			this.trueQueue = trueQueue;
+			this.falseQueue = falseQueue;
+			this.completeCallbacks = [];
+		},
+		run: function (context) {
+			var
+				check = false,
+				task = this;
+			
+			try {
+				check = this.checker(context);
+			} catch (e) {}
+			
+			var queue = check ? this.trueQueue : this.falseQueue;
+			if (!queue) {
+				this.complete(null);
+			} else {
+				queue = queue.clone();
+				queue.onComplete(function (result) { task.complete(result); })
+				queue.run(context);
+			}
+		}
+	});
+	astral.template.helpers.checkIf = function (checker, trueQueue, falseQueue) {
+		return new IfStatement(checker, trueQueue, falseQueue);
+	}
+	
 	var Includer = astral.queue.Task.extend({
 		constructor: function (template) {
 			this.template = template;
@@ -145,12 +175,13 @@
 					attrs = this.attrs;
 				
 				this.loader(this.extend, function (template) {
-					template.createHelper.onComplete(function () {
+					var helperCreator = template.createHelper();
+					helperCreator.onComplete(function () {
 						attrs['parentClass'] = template.helperClass;
 						var newClass = template.helperClass.extend(attrs, {parentClass: template.helperClass});
 						task.complete(newClass);
 					});
-					template.createHelper.run();
+					helperCreator.run();
 				});
 			}
 		}),
@@ -178,8 +209,10 @@
 			this.base(null, error); // do not return helper as a result
 		}
 	});
-	astral.template.helpers.registerTemplateHelper = function (template, extend, attrs) {
-		return new TemplateHelperRegister(template, extend, attrs);
+	astral.template.helpers.registerTemplateHelper = function (extend, attrs) {
+		return function () {
+			return new TemplateHelperRegister(this, extend, attrs);
+		}
 	};
 	
 })();

@@ -107,9 +107,13 @@
 				constructor: function (source) {
 					this.base(source);
 					
-					if (this.tagName.substring(0, 3) != 'end') {
+					if (!this.isSpecialTokenName(this.tagName)) {
 						this.useInclusion = Block.get(this.tagName).useInclusion;
 					}
+				},
+				
+				isSpecialTokenName: function (name) {
+					return name.substring(0, 3) == 'end' || name == 'else';
 				},
 				
 				render: function () {
