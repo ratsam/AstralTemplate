@@ -3,10 +3,16 @@
 	if (!astral.template) astral.template = {};
 	if (!astral.template.helpers) astral.template.helpers = {};
 	
-	astral.template.helpers.push = function (string) {
-		return astral.queue.Task.create(function () {
+	astral.template.helpers.push = function (string, sourceName, lineno) {
+		var task = astral.queue.Task.create(function () {
 			return string;
 		});
+		if (astral.template.DEBUG) {
+			task.sourceName = sourceName;
+			task.lineno = lineno;
+			task.helper = 'push';
+		}
+		return task;
 	};
 	
 	var DelegationCall = astral.queue.Task.extend({
@@ -19,13 +25,19 @@
 			subtask.run(context);
 		}
 	});
-	astral.template.helpers.delegate = function (delegation) {
-		return new DelegationCall(delegation);
+	astral.template.helpers.delegate = function (delegation, sourceName, lineno) {
+		var task = new DelegationCall(delegation);
+		if (astral.template.DEBUG) {
+			task.sourceName = sourceName;
+			task.lineno = lineno;
+			task.helper = 'delegate';
+		}
+		return task;
 	};
 	
 	var EachIterator = astral.queue.Task.extend({
-		constructor: function (listName, itemName, makeTask) {
-			this.listName = listName;
+		constructor: function (listGetter, itemName, makeTask) {
+			this.listGetter = listGetter;
 			this.itemName = itemName;
 			this.makeTask = makeTask;
 			
@@ -34,7 +46,7 @@
 		run: function (context) {
 			// Create new Queue, that will iterate over list
 			var
-				list = context.get(this.listName),
+				list = this.listGetter(context),
 				itemName = this.itemName,
 				queue = new astral.queue.Queue(),
 				makeTask = this.makeTask;
@@ -53,8 +65,14 @@
 			queue.run(context);
 		}
 	});
-	astral.template.helpers.each = function (listName, itemName, makeCallback) {
-		return new EachIterator(listName, itemName, makeCallback);
+	astral.template.helpers.each = function (listName, itemName, makeCallback, sourceName, lineno) {
+		var task = new EachIterator(listName, itemName, makeCallback);
+		if (astral.template.DEBUG) {
+			task.sourceName = sourceName;
+			task.lineno = lineno;
+			task.helper = 'each';
+		}
+		return task;
 	};
 	
 	var IfStatement = astral.queue.Task.extend({
@@ -83,9 +101,15 @@
 			}
 		}
 	});
-	astral.template.helpers.checkIf = function (checker, trueQueue, falseQueue) {
-		return new IfStatement(checker, trueQueue, falseQueue);
-	}
+	astral.template.helpers.checkIf = function (checker, trueQueue, falseQueue, sourceName, lineno) {
+		var task = new IfStatement(checker, trueQueue, falseQueue);
+		if (astral.template.DEBUG) {
+			task.sourceName = sourceName;
+			task.lineno = lineno;
+			task.helper = 'if';
+		}
+		return task;
+	};
 	
 	var Includer = astral.queue.Task.extend({
 		constructor: function (template) {
@@ -101,7 +125,11 @@
 		}
 	});
 	astral.template.helpers.include = function (template) {
-		return new Includer(template);
+		var task = new Includer(template);
+		if (astral.template.DEBUG) {
+			task.helper = 'include';
+		}
+		return task;
 	};
 	
 	// Template assigned class-based helper with inheritance support
@@ -154,8 +182,10 @@
 					task = this,
 					subtask = this._makeTask();
 				
+				if (astral.template.DEBUG) subtask.task = task;
+				
 				subtask.onComplete(function (result, error) { task.complete(result, error); });
-				subtask.run();
+				subtask.run(context.push());
 			}
 		},
 		
@@ -169,19 +199,19 @@
 				this.attrs = attrs;
 				this.completeCallbacks = [];
 			},
-			run: function () {
+			run: function (context) {
 				var
 					task = this,
 					attrs = this.attrs;
 				
 				this.loader(this.extend, function (template) {
-					var helperCreator = template.createHelper();
+					var helperCreator = template.createHelper(context);
 					helperCreator.onComplete(function () {
 						attrs['parentClass'] = template.helperClass;
 						var newClass = template.helperClass.extend(attrs, {parentClass: template.helperClass});
 						task.complete(newClass);
 					});
-					helperCreator.run();
+					helperCreator.run(context);
 				});
 			}
 		}),
@@ -211,8 +241,12 @@
 	});
 	astral.template.helpers.registerTemplateHelper = function (extend, attrs) {
 		return function () {
-			return new TemplateHelperRegister(this, extend, attrs);
-		}
+			var task = new TemplateHelperRegister(this, extend, attrs);
+			if (astral.template.DEBUG) {
+				task.helper = 'registerTemplateHelper';
+			}
+			return task;
+		};
 	};
 	
 })();

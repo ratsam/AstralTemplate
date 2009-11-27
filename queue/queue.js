@@ -226,6 +226,7 @@
 			try {
 				var result = this.process(context);
 			} catch (e) {
+				if (astral.queue.DEBUG) console.debug('Got error while running task', e);
 				this.complete('', e);
 				return;
 			}

@@ -45,15 +45,15 @@
 	
 	with (astral.template) {
 		Block.register('each', Block.extend({
-				render: function () {
+				render: function (token) {
 					if (this.args[1] != 'as') {
 						throw new Error('"each block usage:\n<@ each list as varName @>\n... code accessing varName ...\n<@ endeach @>"');
 					}
-					return "each('"+this.args[0]+"', '"+this.args[2]+"', function () {\n" +
+					return "each(function (context) { with (context.data) { return "+this.args[0]+"; } }, '"+this.args[2]+"', function () {\n" +
 						"	return new astral.queue.Queue([\n\t\t" +
 						($.map(this.inclusionTokens, function (token) { return token.render().replace(/\n/g, '\n\t\t'); })).join(',\n\t\t') + "\n" +
 						"	]);\n" +
-						"})";
+						'}, "'+token.sourceName+'", '+(token.lineno+1)+')';
 				}
 			}, {
 				useInclusion: true

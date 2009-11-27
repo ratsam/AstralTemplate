@@ -3,8 +3,15 @@
 	if (!astral.template) astral.template = {};
 	
 	astral.template.Token = Base.extend({
-		constructor: function (source) {
+		constructor: function (source, sourceName, lineno) {
+			while (source[0] == '\n') {
+				source = source.substring(1);
+				lineno += 1;
+			}
+			
 			this.source = source;
+			this.sourceName = sourceName;
+			this.lineno = lineno;
 			this.tagName = null;
 			this.useInclusion = false;
 			this.subtokens = [];
@@ -27,8 +34,8 @@
 			}
 			return this.registry[type];
 		},
-		create: function (type, source) {
-			return new (this.get(type))(source);
+		create: function (type, source, sourceName, lineno) {
+			return new (this.get(type))(source, sourceName, lineno);
 		}
 	});
 	
@@ -39,14 +46,14 @@
 		 */
 		var BaseTextToken = Token.extend({
 			constructor: function (source) {
-				this.base(source);
+				this.base.apply(this, arguments);
 				this.ignore = !/\S/.test(source);
 			}
 		});
 		
 		var DelegatingToken = Token.extend({
 			constructor: function (source) {
-				this.base(source);
+				this.base.apply(this, arguments);
 				this.bits = DelegatingToken.splitSource(source);
 				this.tagName = this.bits.shift();
 			}
@@ -69,8 +76,8 @@
 		});
 		
 		Token.register('control', DelegatingToken.extend({
-				constructor: function (source) {
-					this.base(source);
+				constructor: function () {
+					this.base.apply(this, arguments);
 					
 					if (this.tagName.substring(0, 3) != 'end') {
 						this.useInclusion = Control.get(this.tagName).useInclusion;
@@ -83,7 +90,7 @@
 					if (this.useInclusion) {
 						// Control tokens may include only queue tokens
 						var content = ($.map(this.subtokens, function (token) { return token.source; })).join('');
-						var lexer = new QueueLexer(content);
+						var lexer = new QueueLexer(content, this.sourceName, this.lineno);
 						control.setContent(lexer.parse());
 					}
 					return control.render();
@@ -94,7 +101,7 @@
 		// Queue-generation tokens
 		astral.template.QueueTextToken = BaseTextToken.extend({
 			render: function () {
-				return 'push("'+this.source.replace(/\\/g, '\\\\').replace(/"/g, '\\"').replace(/\n/g, '\\n')+'")';
+				return 'push("'+this.source.replace(/\\/g, '\\\\').replace(/"/g, '\\"').replace(/\n/g, '\\n')+'", "'+this.sourceName+'", '+this.lineno+')';
 			}
 		});
 		
@@ -104,8 +111,8 @@
 		);
 		
 		Token.register('queue', DelegatingToken.extend({
-				constructor: function (source) {
-					this.base(source);
+				constructor: function () {
+					this.base.apply(this, arguments);
 					
 					if (!this.isSpecialTokenName(this.tagName)) {
 						this.useInclusion = Block.get(this.tagName).useInclusion;
@@ -122,14 +129,14 @@
 					if (this.useInclusion) {
 						block.setInclusionTokens(this.subtokens);
 					}
-					return block.render();
+					return block.render(this);
 				}
 			})
 		);
 		
 		Token.register('variable', Token.extend({
 				render: function () {
-					return 'delegate(function(context){with(context.data){return push('+this.source+')}})';
+					return 'delegate(function(context){with(context.data){return push('+this.source+')}}, "'+this.sourceName+'", '+this.lineno+')';
 				}
 			})
 		);

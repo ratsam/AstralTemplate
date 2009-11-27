@@ -31,8 +31,10 @@
 		};
 		
 		var BaseLexer = Base.extend({
-			constructor: function (templateString) {
+			constructor: function (templateString, sourceName, lineno) {
 				this.templateString = templateString;
+				this.sourceName = sourceName;
+				this.lineno = lineno || 1;
 				this.textTokenClass = this.constructor.textTokenClass;
 				
 				this._sortTags();
@@ -107,8 +109,9 @@
 				
 				for (var i=0; i<tokenStrings.length; i++) {
 					if (tokenStrings[i]) {
-						result.push(this.createToken(tokenStrings[i], insideTag));
+						result.push(this.createToken(tokenStrings[i], insideTag, this.lineno));
 					}
+					this.lineno += tokenStrings[i].split("\n").length - 1;
 					insideTag = !insideTag;
 				}
 				return result;
@@ -120,18 +123,18 @@
 			 * @param insideTag Boolean
 			 * @return astral.template.Token
 			 */
-			createToken: function (tokenString, insideTag) {
+			createToken: function (tokenString, insideTag, lineno) {
 				if (insideTag) {
 					for (var tag in this.tags) {
 						var tagStart = this.tags[tag][0];
 						if (tokenString.substring(0, tagStart.length) == tagStart) {
 							var cut = tokenString.length - this.tags[tag][1].length;
-							return Token.create(tag, $.trim(tokenString.substring(tagStart.length, cut)));
+							return Token.create(tag, $.trim(tokenString.substring(tagStart.length, cut)), this.sourceName, lineno);
 						}
 					}
 					throw new Error("Unable to parse token: "+tokenString);
 				} else {
-					return new (this.textTokenClass)(tokenString);
+					return new (this.textTokenClass)(tokenString, this.sourceName, lineno);
 				}
 			}
 		}, {
@@ -144,9 +147,9 @@
 		 * First lexer to prepare and parse helper tokens.
 		 */
 		astral.template.HelperLexer = BaseLexer.extend({
-			constructor: function (templateString) {
-				this.base(templateString);
-				this.base = true; // Template can be either base (with createMainQueue method) or extention, where TextTokens causes error.
+			constructor: function () {
+				this.base.apply(this, arguments);
+				this.baseHelper = true; // Template can be either base (with createMainQueue method) or extention, where TextTokens causes error.
 			},
 			parse: function () {
 				var tokens = this.getTokens();
@@ -166,11 +169,11 @@
 					}
 				})
 				
-				this.base = false;
+				this.baseHelper = false;
 				var extend = extendsToken.bits[0];
 				
 				if (!(extend[0] == '"' || extend[0] == "'")) { // FIXME: BADCODE
-					extend = 'function (context) { return context.get("'+extend+'"); }';
+					extend = 'function (context) { return context.data.'+extend+'; }';
 				}
 				
 				return 'registerTemplateHelper('+extend+', {\n\t'+
@@ -182,7 +185,8 @@
 				if (mainQueue.is('control')) {
 					throw new Error("Base template MUST define non-control tokens");
 				}
-				var def = Token.create('control', 'def _createMainQueue');
+				
+				var def = Token.create('control', 'def _createMainQueue', this.sourceName, mainQueue.lineno);
 				def.setInclusionTokens([mainQueue]);
 				tokens.push(def);
 				

@@ -50,8 +50,8 @@
 		 * @param templateCode String
 		 * @return astral.template.Template
 		 */
-		fromSource: function (templateCode) {
-			var lexer = new astral.template.HelperLexer(templateCode);
+		fromSource: function (templateCode, sourceName) {
+			var lexer = new astral.template.HelperLexer(templateCode, sourceName);
 			var code = lexer.parse();
 			
 			var compileCode = 'with (astral.template.helpers) {\n' +
@@ -60,7 +60,7 @@
 						'		currentTemplate.createHelper(),\n' +
 						'		delegate(function (context) {\n' +
 						'			return currentTemplate.getHelper(context).createMainQueue(currentTemplate);\n' +
-						'		})\n' +
+						'		}, "'+sourceName+'", -1)\n' +
 						'	]);\n' +
 						'}';
 			if (astral.template.DEBUG) {

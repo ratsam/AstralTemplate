@@ -32,6 +32,7 @@
 			render: function () {
 				return this.args[0]+': function () {\n' +
 					'	var helper = this;\n' +
+					// TODO: do not declare ``super``for base templates.
 					'	var super = (function(method, obj){return function () {return method.apply(obj);}})(helper.base, helper);\n' +
 					'	with (this.context.data) {\n'+
 					'		return new astral.queue.Queue([\n\t\t\t'+
