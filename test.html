@@ -30,30 +30,35 @@
 					});
 				})();
 
-				astral.template.Template.load('testTemplate', function (template) {
-					template.render('#simpleTemplateResult', {items: [
+				var load = function (templateId, data) {
+					astral.template.Template.load(templateId, function (template) {
+						template.render('#'+templateId+'Result', data);
+					});
+				}
+
+				load('simpleTemplate', {items: [
 						{name: 'First item'},
 						{name: 'Second item'}
-					]});
-				});
+					]}
+				);
 
-				astral.template.Template.load('extendedTemplate', function (template) {
-					template.render('#extendedTemplateResult', {items: [
+				load('extendedTemplate', {items: [
 						{name: 'First item name', href: "first_item_href"},
 						{name: 'Second item name', href: "second_item_href"}
-					]});
-				});
+					]}
+				);
 
-				astral.template.Template.load('ifStatementTemplate', function (template) {
-					template.render('#ifStatementTemplateResult', {items: [
+				load('ifStatementTemplate', {items: [
 						{name: 'First item, with href', href: "first_item_href"},
 						{name: 'Second simple item'}
-					]});
-				});
+					]}
+				);
+
+				load('eachElseTemplate', {items: []});
 			});
 		</script>
 		
-		<script type="template/astral" id="testTemplate">
+		<script type="template/astral" id="simpleTemplate">
 			<ul>
 				<@ each items as item @>
 					<li><%= item.name %></li>
@@ -89,10 +94,19 @@
 				<@ endif @>
 			<? enddef ?>
 		</script>
+		
+		<script type="template/astral" id="eachElseTemplate">
+			<@ each items as item @>
+				<%= item %>
+			<@ else @>
+				Empty ``each`` argument.
+			<@ endeach @>
+		</script>
 	</head>
 	<body>
 		<div id="simpleTemplateResult"></div>
 		<div id="extendedTemplateResult"></div>
 		<div id="ifStatementTemplateResult"></div>
+		<div id="eachElseTemplateResult"></div>
 	</body>
 </html>

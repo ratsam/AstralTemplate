@@ -36,17 +36,25 @@
 	};
 	
 	var EachIterator = astral.queue.Task.extend({
-		constructor: function (listGetter, itemName, makeTask) {
+		constructor: function (listGetter, itemName, makeTask, elseQueue) {
 			this.listGetter = listGetter;
 			this.itemName = itemName;
 			this.makeTask = makeTask;
+			this.elseQueue = elseQueue;
 			
 			this.completeCallbacks = [];
 		},
 		run: function (context) {
+			var list = this.listGetter(context);
+			if (!list || !list.length) {
+				this.runElse(context);
+			} else {
+				this.runEach(context, list);
+			}
+		},
+		runEach: function (context, list) {
 			// Create new Queue, that will iterate over list
 			var
-				list = this.listGetter(context),
 				itemName = this.itemName,
 				queue = new astral.queue.Queue(),
 				makeTask = this.makeTask;
@@ -63,10 +71,22 @@
 			var iterator = this;
 			queue.onComplete(function (result) { iterator.complete(result); });
 			queue.run(context);
+		},
+		runElse: function (context) {
+			if (this.elseQueue) {
+				var
+					iterator = this,
+					task = this.elseQueue.clone();
+				
+				task.onComplete(function (result) { iterator.complete(result); });
+				task.run(context);
+			} else {
+				this.complete(null);
+			}
 		}
 	});
-	astral.template.helpers.each = function (listName, itemName, makeCallback, sourceName, lineno) {
-		var task = new EachIterator(listName, itemName, makeCallback);
+	astral.template.helpers.each = function (listName, itemName, makeCallback, elseQueue, sourceName, lineno) {
+		var task = new EachIterator(listName, itemName, makeCallback, elseQueue);
 		if (astral.template.DEBUG) {
 			task.sourceName = sourceName;
 			task.lineno = lineno;

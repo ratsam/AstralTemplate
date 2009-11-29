@@ -49,14 +49,33 @@
 					if (this.args[1] != 'as') {
 						throw new Error('"each block usage:\n<@ each list as varName @>\n... code accessing varName ...\n<@ endeach @>"');
 					}
-					return "each(function (context) { with (context.data) { return "+this.args[0]+"; } }, '"+this.args[2]+"', function () {\n" +
-						"	return new astral.queue.Queue([\n\t\t" +
-						($.map(this.inclusionTokens, function (token) { return token.render().replace(/\n/g, '\n\t\t'); })).join(',\n\t\t') + "\n" +
-						"	]);\n" +
-						'}, "'+token.sourceName+'", '+(token.lineno+1)+')';
+					
+					var groups = $.map(this.inclusionTokens, function (group) {
+						var result = $.map(group, function (token) {
+							return token.render().replace(/\n/g, '\n\t');
+						});
+						
+						if (!result.length) {
+							return 'null';
+						} else {
+							return 'new astral.queue.Queue([\n\t\t' +
+								result.join(',\n').replace(/\n/g, '\n\t\t') + '\n\t' +
+								'])';
+						}
+					});
+					
+					var clause = "function (context) { with (context.data) { return "+this.args[0]+"; } }";
+					
+					return "each("+clause+", '"+this.args[2]+"',\n\t" +
+								"function () {\n\t\t" +
+									"return " + groups[0].replace(/\n/g, '\n\t') + ";\n\t" +
+								"},\n\t" +
+								groups[1] + "\n" +
+							")";
 				}
 			}, {
-				useInclusion: true
+				useInclusion: true,
+				useElse: true
 			})
 		);
 		
