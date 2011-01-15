@@ -42,12 +42,14 @@
 	with (astral.template) {
 		/**
 		 * Base token to store raw text.
-		 * If source is blank, token ignored.
 		 */
-		var BaseTextToken = Token.extend({
+		astral.template.BaseTextToken = Token.extend({
 			constructor: function (source) {
 				this.base.apply(this, arguments);
-				this.ignore = !/\S/.test(source);
+				this._is_blank = !/S/.test(source);
+			},
+			isBlank: function() {
+				return this._is_blank;
 			}
 		});
 		

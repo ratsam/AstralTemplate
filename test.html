@@ -55,6 +55,8 @@
 				);
 
 				load('eachElseTemplate', {items: []});
+
+				load('whiteSpacesTestTemplate', {'out': 'test'});
 			});
 		</script>
 		
@@ -94,6 +96,12 @@
 				<@ endif @>
 			<? enddef ?>
 		</script>
+
+		<script type="template/astral" id="whiteSpacesTestTemplate">
+			<ul>
+				<li><%= out %> <%= out %></li>
+			</ul>
+		</script>
 		
 		<script type="template/astral" id="eachElseTemplate">
 			<@ each items as item @>
@@ -108,5 +116,6 @@
 		<div id="extendedTemplateResult"></div>
 		<div id="ifStatementTemplateResult"></div>
 		<div id="eachElseTemplateResult"></div>
+		<div id="whiteSpacesTestTemplateResult"></div>
 	</body>
 </html>

@@ -32,7 +32,7 @@
 		
 		var BaseLexer = Base.extend({
 			constructor: function (templateString, sourceName, lineno) {
-				this.templateString = templateString;
+				this.templateString = templateString.replace(/^\s+/, '');
 				this.sourceName = sourceName;
 				this.lineno = lineno || 1;
 				this.textTokenClass = this.constructor.textTokenClass;
@@ -106,10 +106,15 @@
 					result = [];
 				
 				var tokenStrings = this.templateString.split(this.tagRe);
-				
+			
+				if (astral.template.DEBUG) console.debug(tokenStrings);
+	
 				for (var i=0; i<tokenStrings.length; i++) {
 					if (tokenStrings[i]) {
-						result.push(this.createToken(tokenStrings[i], insideTag, this.lineno));
+						var token = this.createToken(tokenStrings[i], insideTag, this.lineno);
+						if (token) {
+							result.push(token);
+						}
 					}
 					this.lineno += tokenStrings[i].split("\n").length - 1;
 					insideTag = !insideTag;
@@ -162,12 +167,16 @@
 				// TODO: test there is no control tokens inside other tokens
 			},
 			processExtentionTemplate: function (extendsToken, tokens) {
-				$.each(tokens, function (_, token) {
-					if (!token.is('control')) {
+				tokens = $.map(tokens, function(token) {
+					if (token.is('control')) {
+						return token;
+					} else if (token instanceof astral.template.BaseTextToken && token.isBlank()) {
+						// pass
+					} else {
 						if (astral.template.DEBUG) console.debug(token);
-						throw new Error("Extention template MUST NOT contain own non-control tokens");
-					}
-				})
+                                                throw new Error("Extention template MUST NOT contain own non-control tokens");
+					} 
+				});
 				
 				this.baseHelper = false;
 				var extend = extendsToken.bits[0];
